@@ -1,3 +1,5 @@
+package SuperServer;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -14,19 +16,19 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class FTPTest {
+public class FtpTcpServer {
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		new FTPTest();
+		new FtpTcpServer();
 	}
 
-	public FTPTest() {
+	public FtpTcpServer() {
 		
-		usersInfo.add(new UserInfo("admin", "admin", "F:/eclipse_workspace/FTPTest/ftp"));
+		usersInfo.add(new UserInfo("admin", "admin", System.getProperty("user.dir").replace('\\', '/')+"/ftp"));
 		
 		// 监听21号端口,21口用于控制,20口用于传数据
 		ServerSocket s;
@@ -58,7 +60,8 @@ public class FTPTest {
 
 	public ArrayList<FtpHandler> users = new ArrayList<FtpHandler>();
 	public static int counter = 0;
-	public static String initDir = "F:/eclipse_workspace/FTPTest/ftp";
+	public static String initDir = System.getProperty("user.dir").replace('\\', '/')+"/ftp";
+//	public static String initDir = "F:/eclipse_workspace/FTPTest/ftp";
 	public static ArrayList<UserInfo> usersInfo = new ArrayList<UserInfo>();
 
 	class UserInfo {
@@ -77,27 +80,29 @@ public class FTPTest {
 	class FtpHandler extends Thread {
 		Socket ctrlSocket; // 用于控制的套接字
 		Socket dataSocket; // 用于传输的套接字
+		ServerSocket randDataSocket;//随机分配的用于数据传输的套接字
 		int id;
 		String cmd = ""; // 存放指令(空格前)
 		String param = ""; // 放当前指令之后的参数(空格后)
 		String user;
 		String remoteHost = " "; // 客户IP
 		int remotePort = 0; // 客户TCP 端口号
-		String dir = FTPTest.initDir;// 当前目录
-		String rootdir = "F:/eclipse_workspace/FTPTest/ftp"; // 默认根目录,在checkPASS中设置
+		String dir = FtpTcpServer.initDir;// 当前目录
+		String rootdir = System.getProperty("user.dir").replace('\\', '/')+"/ftp"; // 默认根目录,在checkPASS中设置
 		int state = 0; // 用户状态标识符,在checkPASS中设置
 		String reply; // 返回报告
 		PrintWriter ctrlOutput;
 		int type = 0; // 文件类型(ascII 或 bin)
 		String requestfile = "";
 		boolean isrest = false;
+		
 
 		// FtpHandler方法
 		// 构造方法
 		public FtpHandler(Socket s, int i) {
 			ctrlSocket = s;
 			id = i;
-			dir = FTPTest.initDir;
+			dir = FtpTcpServer.initDir;
 		}
 
 		// run 方法
@@ -136,44 +141,46 @@ public class FTPTest {
 							case 4:
 								finished = commandCDUP(); // 到上一层目录
 								break;
-							case 6:
+							case 5:
 								finished = commandCWD(); // 到指定的目录
 								break;
-							case 7:
+							case 6:
 								finished = commandQUIT(); // 退出
 								break;
-							case 9:
+							case 7:
 								finished = commandPORT(); // 客户端IP:地址+TCP 端口号
 								break;
-							case 11:
+							case 8:
 								finished = commandTYPE(); // 文件类型设置(ascII 或 bin)
 								break;
-							case 14:
+							case 9:
 								finished = commandRETR(); // 从服务器中获得文件
 								break;
-							case 15:
+							case 10:
 								finished = commandSTOR(); // 向服务器中发送文件
 								break;
-							case 22:
+							case 11:
 								finished = commandABOR(); // 关闭传输用连接dataSocket
 								break;
-							case 23:
+							case 12:
 								finished = commandDELE(); // 删除服务器上的指定文件
 								break;
-							case 25:
+							case 13:
 								finished = commandMKD(); // 建立目录
 								break;
-							case 27:
+							case 14:
 								finished = commandLIST(); // 文件和目录的列表
 								break;
-							case 26:
-							case 33:
+							case 15:
+							case 16:
 								finished = commandPWD(); // "当前目录" 信息
 								break;
-							case 32:
+							case 17:
 								finished = commandNOOP(); // "命令正确" 信息
 								break;
-
+							case 18:
+								finished = commandPASV(); // "命令正确" 信息
+								break;
 							}
 						}
 							break;
@@ -210,31 +217,33 @@ public class FTPTest {
 			if (cmd.equals("CDUP"))
 				i = 4;
 			if (cmd.equals("CWD"))
-				i = 6;
+				i = 5;
 			if (cmd.equals("QUIT"))
-				i = 7;
+				i = 6;
 			if (cmd.equals("PORT"))
-				i = 9;
+				i = 7;
 			if (cmd.equals("TYPE"))
-				i = 11;
+				i = 8;
 			if (cmd.equals("RETR"))
-				i = 14;
+				i = 9;
 			if (cmd.equals("STOR"))
-				i = 15;
+				i = 10;
 			if (cmd.equals("ABOR"))
-				i = 22;
+				i = 11;
 			if (cmd.equals("DELE"))
-				i = 23;
+				i = 12;
 			if (cmd.equals("MKD"))
-				i = 25;
-			if (cmd.equals("PWD"))
-				i = 26;
+				i = 13;
 			if (cmd.equals("LIST"))
-				i = 27;
+				i = 14;
+			if (cmd.equals("PWD"))
+				i = 15;
 			if (cmd.equals("NOOP"))
-				i = 32;
+				i = 16;
 			if (cmd.equals("XPWD"))
-				i = 33;
+				i = 17;
+			if (cmd.equals("PASV"))
+				i = 18;
 			return i;
 		}
 
@@ -264,12 +273,12 @@ public class FTPTest {
 
 		boolean checkPASS(String s) // 检查密码是否正确,从文件中找
 		{
-			for (int i = 0; i < FTPTest.usersInfo.size(); i++) {
-				if (((UserInfo) FTPTest.usersInfo.get(i)).user.equals(user)
-						&& ((UserInfo) FTPTest.usersInfo.get(i)).password
+			for (int i = 0; i < FtpTcpServer.usersInfo.size(); i++) {
+				if (((UserInfo) FtpTcpServer.usersInfo.get(i)).user.equals(user)
+						&& ((UserInfo) FtpTcpServer.usersInfo.get(i)).password
 								.equals(s)) {
-					rootdir = ((UserInfo) FTPTest.usersInfo.get(i)).workDir;
-					dir = ((UserInfo) FTPTest.usersInfo.get(i)).workDir;
+					rootdir = ((UserInfo) FtpTcpServer.usersInfo.get(i)).workDir;
+					dir = ((UserInfo) FtpTcpServer.usersInfo.get(i)).workDir;
 					return true;
 				}
 			}
@@ -316,10 +325,27 @@ public class FTPTest {
 		void errCMD() {
 			reply = "500 语法错误";
 		}
+		
+		//请求服务器，等待数据连接
+		boolean commandPASV(){
+			try {
+				randDataSocket = new ServerSocket(0);
+				InetAddress addr = InetAddress.getLocalHost();
+				String ip=addr.getHostAddress().toString();//获得本机IP,即服务器ip
+				ip = ip.replace('.', ',');
+				String highport = ""+randDataSocket.getLocalPort()/256;
+				String lowport = ""+randDataSocket.getLocalPort()%256;
+				reply = "227 命令正确  ("+ip+","+highport+","+lowport+")";
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return false;
+		}//commandPASV() end
 
 		boolean commandCDUP()// 到上一层目录
 		{
-			dir = FTPTest.initDir;
+			dir = FtpTcpServer.initDir;
 			File f = new File(dir);
 			if (f.getParent() != null && (!dir.equals(rootdir)))// 有父路径 && 不是根路径
 			{
@@ -416,8 +442,8 @@ public class FTPTest {
 		boolean commandLIST()// 文件和目录的列表
 		{
 			try {
-				dataSocket = new Socket(remoteHost, remotePort,
-						InetAddress.getLocalHost(), 20);
+//				dataSocket = new Socket(remoteHost, remotePort,InetAddress.getLocalHost(), 20);
+				dataSocket = randDataSocket.accept();
 				PrintWriter dout = new PrintWriter(
 						dataSocket.getOutputStream(), true);
 				if (param.equals("") || param.equals("LIST")) {
