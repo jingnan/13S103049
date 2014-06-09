@@ -30,13 +30,13 @@ public class FtpTcpServer {
 		
 		usersInfo.add(new UserInfo("admin", "admin", System.getProperty("user.dir").replace('\\', '/')+"/ftp"));
 		
-		// 监听21号端口,21口用于控制,20口用于传数据
+		// 监听21号端口,21口用于控制
 		ServerSocket s;
 		try {
 			s = new ServerSocket(21);
 
 			int i = 0;
-			for (;;) {
+			while (true) {
 				// 接受客户端请求
 				Socket incoming = s.accept();
 				BufferedReader in = new BufferedReader(new InputStreamReader(
@@ -189,7 +189,7 @@ public class FtpTcpServer {
 					}
 					System.out.println(reply);
 					ctrlOutput.println(reply);
-					ctrlOutput.flush();//
+					ctrlOutput.flush();
 
 				}
 				ctrlSocket.close();
@@ -442,7 +442,6 @@ public class FtpTcpServer {
 		boolean commandLIST()// 文件和目录的列表
 		{
 			try {
-//				dataSocket = new Socket(remoteHost, remotePort,InetAddress.getLocalHost(), 20);
 				dataSocket = randDataSocket.accept();
 				PrintWriter dout = new PrintWriter(
 						dataSocket.getOutputStream(), true);
