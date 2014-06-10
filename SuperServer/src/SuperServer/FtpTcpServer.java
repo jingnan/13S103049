@@ -28,7 +28,7 @@ public class FtpTcpServer {
 
 	public FtpTcpServer() {
 		
-		usersInfo.add(new UserInfo("admin", "admin", System.getProperty("user.dir").replace('\\', '/')+"/ftp"));
+		usersInfo.add(new UserInfo("jingnan", "jingnan", System.getProperty("user.dir").replace('\\', '/')+"/ftp"));
 		
 		// 监听21号端口,21口用于控制
 		ServerSocket s;
@@ -36,7 +36,7 @@ public class FtpTcpServer {
 			s = new ServerSocket(21);
 
 			int i = 0;
-			while (true) {
+			for (;;) {
 				// 接受客户端请求
 				Socket incoming = s.accept();
 				BufferedReader in = new BufferedReader(new InputStreamReader(
@@ -61,7 +61,6 @@ public class FtpTcpServer {
 	public ArrayList<FtpHandler> users = new ArrayList<FtpHandler>();
 	public static int counter = 0;
 	public static String initDir = System.getProperty("user.dir").replace('\\', '/')+"/ftp";
-//	public static String initDir = "F:/eclipse_workspace/FTPTest/ftp";
 	public static ArrayList<UserInfo> usersInfo = new ArrayList<UserInfo>();
 
 	class UserInfo {
@@ -156,17 +155,8 @@ public class FtpTcpServer {
 							case 9:
 								finished = commandRETR(); // 从服务器中获得文件
 								break;
-							case 10:
-								finished = commandSTOR(); // 向服务器中发送文件
-								break;
 							case 11:
 								finished = commandABOR(); // 关闭传输用连接dataSocket
-								break;
-							case 12:
-								finished = commandDELE(); // 删除服务器上的指定文件
-								break;
-							case 13:
-								finished = commandMKD(); // 建立目录
 								break;
 							case 14:
 								finished = commandLIST(); // 文件和目录的列表
@@ -189,7 +179,7 @@ public class FtpTcpServer {
 					}
 					System.out.println(reply);
 					ctrlOutput.println(reply);
-					ctrlOutput.flush();
+					ctrlOutput.flush();//
 
 				}
 				ctrlSocket.close();
@@ -226,14 +216,8 @@ public class FtpTcpServer {
 				i = 8;
 			if (cmd.equals("RETR"))
 				i = 9;
-			if (cmd.equals("STOR"))
-				i = 10;
 			if (cmd.equals("ABOR"))
 				i = 11;
-			if (cmd.equals("DELE"))
-				i = 12;
-			if (cmd.equals("MKD"))
-				i = 13;
 			if (cmd.equals("LIST"))
 				i = 14;
 			if (cmd.equals("PWD"))
@@ -345,11 +329,10 @@ public class FtpTcpServer {
 
 		boolean commandCDUP()// 到上一层目录
 		{
-			dir = FtpTcpServer.initDir;
 			File f = new File(dir);
 			if (f.getParent() != null && (!dir.equals(rootdir)))// 有父路径 && 不是根路径
 			{
-				dir = f.getParent();
+				dir = f.getParent().replace('\\', '/');
 				reply = "200 命令正确";
 			} else {
 				reply = "550 当前目录无父路径";
@@ -365,9 +348,9 @@ public class FtpTcpServer {
 			String s = "";//当前目录
 			String s1 = "";
 			if (dir.endsWith("/"))
-				s = dir;
+				s = dir.substring(0,dir.length()-1);
 			else
-				s = dir + "/";
+				s = dir;
 			File f1 = new File(s + param);//跳转目录
 
 			if (f.isDirectory() && f.exists()) {
@@ -433,15 +416,11 @@ public class FtpTcpServer {
 			return false;
 		}// commandPort() end
 
-		/*
-		 * LIST 命令用于向客户端返回服务器中工作目录下的目录结构，包括文件和目录的列表。
-		 * 处理这个命令时，先创建一个临时的套接字向客户端发送目录信息。这个套接字的目的端口号缺省为，然后为当前工作目录创建File
-		 * 对象，利用该对象的list()方法得到一个包含该目录下所有文件和子目录名称的字符串数组，然后根据名称中是否含有文件名
-		 * 中特有的"."来区别目录和文件。最后，将得到的名称数组通过临时套接字发送到客户端。
-		 */
+		//LIST 命令用于向客户端返回服务器中工作目录下的目录结构，包括文件和目录的列表。
 		boolean commandLIST()// 文件和目录的列表
 		{
 			try {
+//				dataSocket = new Socket(remoteHost, remotePort,InetAddress.getLocalHost(), 20);
 				dataSocket = randDataSocket.accept();
 				PrintWriter dout = new PrintWriter(
 						dataSocket.getOutputStream(), true);
@@ -490,14 +469,15 @@ public class FtpTcpServer {
 		// 从服务器中获得文件
 		boolean commandRETR() {
 			requestfile = param;
+			dir = deleTail(dir) + param;
 			File f = new File(requestfile);
 			if (!f.exists()) {
-				f = new File(deleTail(dir) + param);
+				f = new File(dir);
 				if (!f.exists()) {
 					reply = "550 文件不存在";
 					return false;
 				}
-				requestfile = deleTail(dir) + param;
+				requestfile = dir;
 			}
 			
 			if(!param.contains(".")){
@@ -510,8 +490,7 @@ public class FtpTcpServer {
 					try {
 						ctrlOutput.println("150 文件状态正常,以二进治方式打开文件:  "
 								+ requestfile);
-						dataSocket = new Socket(remoteHost, remotePort,
-								InetAddress.getLocalHost(), 20);
+						dataSocket = randDataSocket.accept();
 						BufferedInputStream fin = new BufferedInputStream(
 								new FileInputStream(requestfile));
 						PrintStream dataOutput = new PrintStream(
@@ -537,18 +516,15 @@ public class FtpTcpServer {
 				if (type == FtpState.FTYPE_ASCII)// ascII
 				{
 					try {
-						ctrlOutput
-								.println("150 Opening ASCII mode data connection for "
-										+ requestfile);
-						dataSocket = new Socket(remoteHost, remotePort,
-								InetAddress.getLocalHost(), 20);
+						ctrlOutput.println("150 Opening ASCII mode data connection for "+ requestfile);
+						dataSocket = randDataSocket.accept();
 						BufferedReader fin = new BufferedReader(new FileReader(
 								requestfile));
 						PrintWriter dataOutput = new PrintWriter(
 								dataSocket.getOutputStream(), true);
 						String s;
 						while ((s = fin.readLine()) != null) {
-							dataOutput.println(s); // /???
+							dataOutput.println(s); 
 						}
 						fin.close();
 						dataOutput.close();
@@ -563,70 +539,6 @@ public class FtpTcpServer {
 			}
 			return false;
 
-		}
-
-		// commandSTOR 方法
-		// 向服务器中发送文件STOR
-		boolean commandSTOR() {
-			if (param.equals("")) {
-				reply = "501 参数语法错误";
-				return false;
-			}
-			requestfile = deleTail(dir) + param;
-			if (type == FtpState.FTYPE_IMAGE)// bin
-			{
-				try {
-					ctrlOutput
-							.println("150 Opening Binary mode data connection for "
-									+ requestfile);
-					dataSocket = new Socket(remoteHost, remotePort,
-							InetAddress.getLocalHost(), 20);
-					BufferedOutputStream fout = new BufferedOutputStream(
-							new FileOutputStream(requestfile));
-					BufferedInputStream dataInput = new BufferedInputStream(
-							dataSocket.getInputStream());
-					byte[] buf = new byte[1024];
-					int l = 0;
-					while ((l = dataInput.read(buf, 0, 1024)) != -1) {
-						fout.write(buf, 0, l);
-					}
-					dataInput.close();
-					fout.close();
-					dataSocket.close();
-					reply = "226 传输数据连接结束";
-				} catch (Exception e) {
-					e.printStackTrace();
-					reply = "451 请求失败: 传输出故障";
-					return false;
-				}
-			}
-			if (type == FtpState.FTYPE_ASCII)// ascII
-			{
-				try {
-					ctrlOutput
-							.println("150 Opening ASCII mode data connection for "
-									+ requestfile);
-					dataSocket = new Socket(remoteHost, remotePort,
-							InetAddress.getLocalHost(), 20);
-					PrintWriter fout = new PrintWriter(new FileOutputStream(
-							requestfile));
-					BufferedReader dataInput = new BufferedReader(
-							new InputStreamReader(dataSocket.getInputStream()));
-					String line;
-					while ((line = dataInput.readLine()) != null) {
-						fout.println(line);
-					}
-					dataInput.close();
-					fout.close();
-					dataSocket.close();
-					reply = "226 传输数据连接结束";
-				} catch (Exception e) {
-					e.printStackTrace();
-					reply = "451 请求失败: 传输出故障";
-					return false;
-				}
-			}
-			return false;
 		}
 
 		boolean commandPWD() {
@@ -649,54 +561,6 @@ public class FtpTcpServer {
 				return false;
 			}
 			reply = "421 服务不可用, 关闭数据传送连接";
-			return false;
-		}
-
-		// 删除服务器上的指定文件
-		boolean commandDELE() {
-			int i = validatePath(param);
-			if (i == 0) {
-				reply = "550 请求的动作未执行,文件不存在,或目录不对,或其他";
-				return false;
-			}
-			if (i == 1) {
-				File f = new File(param);
-				f.delete();
-			}
-			if (i == 2) {
-				File f = new File(deleTail(dir) + param);
-				f.delete();
-			}
-
-			reply = "250 请求的文件处理结束,成功删除服务器上文件";
-			return false;
-
-		}
-
-		// 建立目录,要绝对路径
-		boolean commandMKD() {
-			String s1 = param.toLowerCase();
-			String s2 = rootdir.toLowerCase();
-			if (s1.startsWith(s2)) {
-				File f = new File(param);
-				if (f.exists()) {
-					reply = "550 请求的动作未执行,目录已存在";
-					return false;
-				} else {
-					f.mkdirs();
-					reply = "250 请求的文件处理结束, 目录建立";
-				}
-			} else {
-				File f = new File(deleTail(dir) + param);
-				if (f.exists()) {
-					reply = "550 请求的动作未执行,目录已存在";
-					return false;
-				} else {
-					f.mkdirs();
-					reply = "250 请求的文件处理结束, 目录建立";
-				}
-			}
-
 			return false;
 		}
 
