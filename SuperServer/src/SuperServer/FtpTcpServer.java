@@ -36,7 +36,7 @@ public class FtpTcpServer {
 			s = new ServerSocket(21);
 
 			int i = 0;
-			for (;;) {
+			while (true) {
 				// 接受客户端请求
 				Socket incoming = s.accept();
 				BufferedReader in = new BufferedReader(new InputStreamReader(

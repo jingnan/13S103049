@@ -3,6 +3,7 @@ package SuperServer;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -12,15 +13,25 @@ import java.net.Socket;
 
 public class HttpServer {
 	//指定80端口启动http服务器，每收到一个请求就创建一个服务器响应线程
-	public void start() throws IOException {
-		ServerSocket server = new ServerSocket(80);
-		System.out.println("server start at 80 port...........");
-		while (true) {
-			Socket soc = server.accept();
-			ServerThread s = new ServerThread(soc);
-			s.start();
+	public HttpServer()
+	{
+		ServerSocket server;
+		try {
+			server = new ServerSocket(80);
+		
+			System.out.println("server start at 80 port...........");
+			while (true) {
+				Socket soc = server.accept();
+				ServerThread s = new ServerThread(soc);
+				s.start();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
+	
+
 
 	//服务器响应线程
 	class ServerThread extends Thread {
@@ -30,19 +41,32 @@ public class HttpServer {
 		}
 		
 		//读取文件内容，转化为byte数组
-		public  byte[] getFileByte(String filename) throws IOException
+		public  byte[] getFileByte(String filename) 
 		{
 			ByteArrayOutputStream baos=new ByteArrayOutputStream();
-			File file=new File(filename);
-			FileInputStream fis=new FileInputStream(file);
-			byte[] b=new byte[1024];
-			int read = 0;
-			while((read=fis.read(b))!=-1)
-			{
-				baos.write(b,0,read);
+			try {
+			
+				File file=new File(filename);
+				FileInputStream fis;
+				
+					fis = new FileInputStream(file);
+				
+				byte[] b=new byte[1024];
+				int read = 0;
+				while((read=fis.read(b))!=-1)
+				{
+					baos.write(b,0,read);
+				}
+				fis.close();
+				baos.close();
+			
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			fis.close();
-			baos.close();
 			return baos.toByteArray();
 		}
 
@@ -145,7 +169,7 @@ public class HttpServer {
 		}
 	}
 	
-	public static void main(String[] args) throws IOException {
-		new HttpServer().start();
+	public static void main(String[] args) {
+		new HttpServer();
 	}
 }
