@@ -13,8 +13,7 @@ import java.net.Socket;
 
 public class HttpServer {
 	//指定80端口启动http服务器，每收到一个请求就创建一个服务器响应线程
-	public HttpServer()
-	{
+	public HttpServer(){
 		ServerSocket server;
 		try {
 			server = new ServerSocket(80);
@@ -31,7 +30,11 @@ public class HttpServer {
 		}
 	}
 	
-
+	public HttpServer(boolean test){
+		testThread = new ServerThread(null);
+	}
+	
+	public ServerThread testThread;
 
 	//服务器响应线程
 	class ServerThread extends Thread {
@@ -41,15 +44,13 @@ public class HttpServer {
 		}
 		
 		//读取文件内容，转化为byte数组
-		public  byte[] getFileByte(String filename) 
-		{
+		public  byte[] getFileByte(String filename) {
 			ByteArrayOutputStream baos=new ByteArrayOutputStream();
 			try {
 			
 				File file=new File(filename);
 				FileInputStream fis;
-				
-					fis = new FileInputStream(file);
+				fis = new FileInputStream(file);
 				
 				byte[] b=new byte[1024];
 				int read = 0;
@@ -59,7 +60,6 @@ public class HttpServer {
 				}
 				fis.close();
 				baos.close();
-			
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -70,18 +70,21 @@ public class HttpServer {
 			return baos.toByteArray();
 		}
 
-		//分析并规范化url，如请求 "/"要规范成"/test.html",如后缀为".htm"，转化成".html"
-		private String getQueryResource(String queryurl)
-		{
+		//分析并规范化url，如请求带有参数，提取参数前内容，并规范url，最后 "/"要规范成"/test.html",如后缀为".htm"，转化成".html"
+		public String getQueryResource(String queryurl){
 			String queryresource=null;
+			//去掉参数
 			int index=queryurl.indexOf('?');
 			if(index!=-1){
 				queryresource=queryurl.substring(0,queryurl.indexOf('?'));
 			}else{
 				queryresource=queryurl;
-			}		
+			}
+			//规范化
 			if(queryresource.endsWith("/")){
 				queryresource=queryresource+"test.html";
+			}else if(queryresource.endsWith("test")){
+				queryresource=queryresource+".html";
 			}else if(queryresource.endsWith(".htm")){
 				queryresource=queryresource+"l";
 			}
@@ -89,28 +92,26 @@ public class HttpServer {
 		}	
 	
 		//根据用户请求的资源类型，设定http响应头的信息，判断用户请求文件类型
-		private String getHead(String queryresource)
-		{
+		public String getHead(String queryresource){
 			String filename="";
 			int index=queryresource.lastIndexOf("/");
 			filename=queryresource.substring(index+1);
 			String filetype=filename.substring(filename.indexOf(".")+1);
-			if(filetype.equals("html"))
-			{
+			if(filetype.equals("html")){
 				return "HTTP/1.0200OK\n"+"Content-Type:text/html\n" + "Server:myserver\n" + "\n";
 			}
-			else if(filetype.equals("jpg")||filetype.equals("gif")||filetype.equals("png"))
-			{
+			else if(filetype.equals("jpg")||filetype.equals("gif")||filetype.equals("png")){
 				return "HTTP/1.0200OK\n"+"Content-Type:image/jpeg\n" + "Server:myserver\n" + "\n";
+			}else{
+				return null;
 			}
-			else return null;
 		}
 
 		public void run() {
 			try {
 				InputStream is = soc.getInputStream();
 				OutputStream os = soc.getOutputStream();
-				soc.setSoTimeout(1000); //设定超时时间
+				soc.setSoTimeout(5000); //设定超时时间
 				int readint;
 				char c;
 				byte[] buf = new byte[1024];

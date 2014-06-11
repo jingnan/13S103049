@@ -370,7 +370,6 @@ public class FtpTcpServer {
 					
 				} else {
 					dir = rootdir+param;
-//					dir = param;
 					reply = "250 请求的文件处理结束, 工作路径变为 " + dir;
 				}
 			} else if (f1.isDirectory() && f1.exists()) {
@@ -469,15 +468,14 @@ public class FtpTcpServer {
 		// 从服务器中获得文件
 		boolean commandRETR() {
 			requestfile = param;
-			dir = deleTail(dir) + param;
 			File f = new File(requestfile);
 			if (!f.exists()) {
-				f = new File(dir);
+				f = new File(deleTail(dir) + param);
 				if (!f.exists()) {
 					reply = "550 文件不存在";
 					return false;
 				}
-				requestfile = dir;
+				requestfile = deleTail(dir) + param;
 			}
 			
 			if(!param.contains(".")){

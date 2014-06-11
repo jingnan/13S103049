@@ -77,7 +77,7 @@ public class FtpUdpClient extends JFrame implements ActionListener{
 		content = new JTextArea();
 		content.setBounds(20, 60, 440, 480);
 		content.setVisible(true);
-//		content.setLineWrap(true);
+		content.setLineWrap(true);
 		content.setWrapStyleWord(true);
 		content.setVisible(true);
 		

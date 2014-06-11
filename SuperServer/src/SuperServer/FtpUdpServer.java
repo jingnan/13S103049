@@ -29,6 +29,12 @@ public class FtpUdpServer {
 			e.printStackTrace();
 		}
 	}
+	
+	public FtpUdpServer(boolean test){
+		testHandler = new FtpHandler();
+	}
+	
+	public FtpHandler testHandler;
 
 	class FtpHandler extends Thread {
 		DatagramSocket server;
@@ -67,6 +73,10 @@ public class FtpUdpServer {
 			// 先告诉客户端我换端口了
 			udpSend("" + port);
 		}
+		
+		public FtpHandler(){
+			
+		}
 
 		// 发送数据包
 		void udpSend(String sendStr) {
@@ -86,7 +96,7 @@ public class FtpUdpServer {
 		}
 
 		// 接受数据包
-		String udpReceive() {
+		public String udpReceive() {
 			String recvStr = null;
 			try {
 				byte[] recvBuf = new byte[1024];
@@ -180,7 +190,7 @@ public class FtpUdpServer {
 		}
 
 		// parseInput方法
-		int parseInput(String s) {
+		public int parseInput(String s) {
 			int p = 0;
 			int i = -1;
 			p = s.indexOf(" ");
@@ -224,7 +234,7 @@ public class FtpUdpServer {
 
 		// validatePath方法
 		// 判断路径的属性,返回 int
-		int validatePath(String s) {
+		public int validatePath(String s) {
 			File f = new File(s); // 相对路径
 			if (f.exists() && !f.isDirectory()) {
 				String s1 = s.toLowerCase();
@@ -324,10 +334,7 @@ public class FtpUdpServer {
 			return true;
 		}// commandQuit() end
 
-		/*
-		 * 使用该命令时，客户端必须发送客户端用于接收数据的32位IP 地址和16位 的TCP 端口号。
-		 * 这些信息以8位为一组，使用十进制传输，中间用逗号隔开。
-		 */
+		//使用该命令时，客户端必须发送客户端用于接收数据的32位IP地址和16位 的TCP端口号。这些信息以8位为一组，使用十进制传输，中间用逗号隔开。
 		boolean commandPORT() {
 			int p1 = 0;
 			int p2 = 0;
@@ -421,7 +428,7 @@ public class FtpUdpServer {
 						int l = 0;
 						while ((l = fin.read(buf, 0, 1024)) != -1) // 缓冲区未读满
 						{
-							send = send + new String(buf,0,1);
+							send = send + new String(buf,0,1)+"	";
 						}
 						udpSend(send);
 						fin.close();
@@ -432,7 +439,6 @@ public class FtpUdpServer {
 						reply = "451 请求失败: 传输出故障";
 						return false;
 					}
-
 				}
 				if (type == FtpState.FTYPE_ASCII)// ascII
 				{
@@ -455,7 +461,6 @@ public class FtpUdpServer {
 				}
 			}
 			return false;
-
 		}
 
 		boolean commandPWD() {
